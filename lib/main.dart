@@ -177,7 +177,7 @@ class _EventListScreenState extends State<EventListScreen> {
                         onTap: pickEnd,
                       ),
                       SwitchListTile(
-                        title: const Text('Nur Start und Ende'),
+                        title: const Text('Alle Tage anzeigen?'),
                         contentPadding: EdgeInsets.zero,
                         value: onlyStartEnd,
                         onChanged: (v) => setDialogState(() => onlyStartEnd = v),
@@ -238,8 +238,8 @@ class _EventListScreenState extends State<EventListScreen> {
                   event.startDate.isAtSameMomentAs(event.endDate!))
               ? startFormatted
               : event.isFilled
-                  ? '$startFormatted bis $endFormatted (jeden Tag markiert)'
-                  : '$startFormatted bis $endFormatted (nur Start/Ende markiert)';
+                  ? '$startFormatted'
+                  : '$startFormatted';
 
           return ListTile(
             title: Text(event.name),

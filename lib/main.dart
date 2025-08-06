@@ -53,9 +53,12 @@ class _EventListScreenState extends State<EventListScreen> {
     final end = event.endDate != null
         ? DateTime(event.endDate!.year, event.endDate!.month, event.endDate!.day)
         : start;
-
-    // Heute liegt zwischen Start und Ende inklusive
-    return !heute.isBefore(start) && !heute.isAfter(end);
+    if (event.isFilled) {
+      // jeder Tag innerhalb des Bereichs wird angezeigt
+      return !heute.isBefore(start) && !heute.isAfter(end);
+    }
+    // nur Start- und Endtag werden angezeigt
+    return heute.isAtSameMomentAs(start) || heute.isAtSameMomentAs(end);
   }
 
   void _cleanupExpiredEvents() {

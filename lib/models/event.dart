@@ -3,23 +3,15 @@ import 'package:hive/hive.dart';
 part 'event.g.dart';
 
 @HiveType(typeId: 0)
-class Event extends HiveObject {
+class Event {
   @HiveField(0)
-  DateTime startDate;
+  final String title;
 
   @HiveField(1)
-  DateTime? endDate; // optional für mehrtägige Events
+  final DateTime date;
 
   @HiveField(2)
-  String name;
+  final int colorIndex;
 
-  @HiveField(3)
-  bool isFilled; // true = jeden Tag markieren, false = nur Start/Ende
-
-  Event({
-    required this.startDate,
-    this.endDate,
-    required this.name,
-    this.isFilled = false,
-  });
+  Event({required this.title, required this.date, required this.colorIndex});
 }

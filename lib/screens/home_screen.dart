@@ -1,80 +1,122 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:intl/intl.dart';
-
 import '../models/event.dart';
 import '../widgets/event_form.dart';
+import '../theme/theme_colors.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  void _showOptions(BuildContext context, Event event, int index, Box<Event> eventBox) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit),
+                title: const Text('Bearbeiten'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  showDialog(
+                    context: context,
+                    builder: (_) => EventForm(
+                      existingEvent: event,
+                      eventIndex: index,
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete),
+                title: const Text('Löschen'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  eventBox.deleteAt(index);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Event "${event.title}" gelöscht')),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.close),
+                title: const Text('Abbrechen'),
+                onTap: () => Navigator.pop(ctx),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final box = Hive.box<Event>('events');
+    final Box<Event> eventBox = Hive.box<Event>('events');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = isDark ? darkModeColors : lightModeColors;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Meine Events')),
+      appBar: AppBar(title: const Text('Kalender')),
       body: ValueListenableBuilder(
-        valueListenable: box.listenable(),
+        valueListenable: eventBox.listenable(),
         builder: (context, Box<Event> box, _) {
-          final now = DateTime.now();
-
-          // Collect all events that are still in the future
-          final upcoming = box.values
-              .where((e) => (e.endDate ?? e.startDate).isAfter(now))
-              .toList();
-
-          // Expand multi-day events so that each day appears as its own entry
-          final events = <Event>[];
-          for (final event in upcoming) {
-            var day =
-                DateTime(event.startDate.year, event.startDate.month, event.startDate.day);
-            final endDay = event.endDate != null
-                ? DateTime(
-                    event.endDate!.year, event.endDate!.month, event.endDate!.day)
-                : DateTime(event.startDate.year, event.startDate.month, event.startDate.day);
-
-            while (!day.isAfter(endDay)) {
-              events.add(Event(
-                name: event.name,
-                startDate: day,
-                endDate: day,
-                isFilled: event.isFilled,
-              ));
-              day = day.add(const Duration(days: 1));
-            }
+          final events = box.values.toList();
+          if (events.isEmpty) {
+            return const Center(child: Text('Keine Events'));
           }
-
-          events.sort((a, b) => a.startDate.compareTo(b.startDate));
-
           return ListView.builder(
             itemCount: events.length,
             itemBuilder: (context, index) {
               final event = events[index];
-              final range = (event.endDate == null ||
-                      event.startDate.isAtSameMomentAs(event.endDate!))
-                  ? DateFormat.yMMMd().format(event.startDate)
-                  : '${DateFormat.yMMMd().format(event.startDate)} – '
-                      '${DateFormat.yMMMd().format(event.endDate!)}';
+              final bgColor = colors[event.colorIndex % colors.length];
 
-              return ListTile(
-                title: Text(event.name),
-                subtitle: Text(range),
-                leading: event.isFilled
-                    ? const Icon(Icons.block, color: Colors.red)
-                    : const Icon(Icons.crop_square, color: Colors.blue),
+              return Dismissible(
+                key: Key(event.hashCode.toString()),
+                direction: DismissDirection.horizontal,
+                onDismissed: (direction) {
+                  eventBox.deleteAt(index);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Event "${event.title}" gelöscht')),
+                  );
+                },
+                background: Container(
+                  color: Colors.red,
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.only(left: 20),
+                  child: const Icon(Icons.delete, color: Colors.white),
+                ),
+                secondaryBackground: Container(
+                  color: Colors.red,
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 20),
+                  child: const Icon(Icons.delete, color: Colors.white),
+                ),
+                child: Container(
+                  color: bgColor,
+                  child: ListTile(
+                    title: Text(event.title),
+                    subtitle: Text(
+                      '${event.date.day}.${event.date.month}.${event.date.year} - '
+                          '${event.date.hour.toString().padLeft(2, '0')}:${event.date.minute.toString().padLeft(2, '0')}',
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.more_vert),
+                      onPressed: () => _showOptions(context, event, index, eventBox),
+                    ),
+                  ),
+                ),
               );
             },
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await showDialog(
-            context: context,
-            builder: (_) => const EventForm(),
-          );
-        },
+        onPressed: () => showDialog(
+          context: context,
+          builder: (_) => const EventForm(),
+        ),
         child: const Icon(Icons.add),
       ),
     );

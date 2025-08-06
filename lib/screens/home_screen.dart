@@ -21,23 +21,25 @@ class HomeScreen extends StatelessWidget {
 
           // Collect all events that are still in the future
           final upcoming = box.values
-              .where((e) => e.endDate.isAfter(now))
+              .where((e) => (e.endDate ?? e.startDate).isAfter(now))
               .toList();
 
           // Expand multi-day events so that each day appears as its own entry
           final events = <Event>[];
           for (final event in upcoming) {
-            var day = DateTime(event.startDate.year, event.startDate.month, event.startDate.day);
-            final endDay =
-                DateTime(event.endDate.year, event.endDate.month, event.endDate.day);
+            var day =
+                DateTime(event.startDate.year, event.startDate.month, event.startDate.day);
+            final endDay = event.endDate != null
+                ? DateTime(
+                    event.endDate!.year, event.endDate!.month, event.endDate!.day)
+                : DateTime(event.startDate.year, event.startDate.month, event.startDate.day);
 
             while (!day.isAfter(endDay)) {
               events.add(Event(
-                title: event.title,
+                name: event.name,
                 startDate: day,
                 endDate: day,
-                time: event.time,
-                isFullyBooked: event.isFullyBooked,
+                isFilled: event.isFilled,
               ));
               day = day.add(const Duration(days: 1));
             }
@@ -49,14 +51,16 @@ class HomeScreen extends StatelessWidget {
             itemCount: events.length,
             itemBuilder: (context, index) {
               final event = events[index];
-              final range = event.startDate == event.endDate
+              final range = (event.endDate == null ||
+                      event.startDate.isAtSameMomentAs(event.endDate!))
                   ? DateFormat.yMMMd().format(event.startDate)
-                  : '${DateFormat.yMMMd().format(event.startDate)} – ${DateFormat.yMMMd().format(event.endDate)}';
+                  : '${DateFormat.yMMMd().format(event.startDate)} – '
+                      '${DateFormat.yMMMd().format(event.endDate!)}';
 
               return ListTile(
-                title: Text(event.title),
-                subtitle: Text('${event.time ?? 'Ganztägig'} | $range'),
-                leading: event.isFullyBooked
+                title: Text(event.name),
+                subtitle: Text(range),
+                leading: event.isFilled
                     ? const Icon(Icons.block, color: Colors.red)
                     : const Icon(Icons.crop_square, color: Colors.blue),
               );

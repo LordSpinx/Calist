@@ -82,10 +82,11 @@ class _EventListScreenState extends State<EventListScreen> {
 
   Future<void> _addEventDialog() async {
     final _formKey = GlobalKey<FormState>();
-    DateTime? startDate;
-    DateTime? endDate;
     String? name;
-    bool isFilled = false;
+    bool isAllDay = false;
+    bool onlyStartEnd = false;
+    DateTime start = DateTime.now();
+    DateTime end = DateTime.now();
 
     await showDialog(
       context: context,
@@ -93,67 +94,90 @@ class _EventListScreenState extends State<EventListScreen> {
         return AlertDialog(
           title: const Text('Neues Event hinzufügen'),
           content: StatefulBuilder(
-            builder: (context, setState) {
+            builder: (context, setDialogState) {
+              String format(DateTime dt) =>
+                  DateFormat(isAllDay ? 'dd.MM.yyyy' : 'dd.MM.yyyy HH:mm').format(dt);
+
+              Future<void> pickStart() async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: start,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                );
+                if (date == null) return;
+                if (isAllDay) {
+                  setDialogState(() => start = DateTime(date.year, date.month, date.day));
+                } else {
+                  final time = await showTimePicker(
+                    context: context,
+                    initialTime: TimeOfDay.fromDateTime(start),
+                  );
+                  if (time != null) {
+                    setDialogState(() =>
+                        start = DateTime(date.year, date.month, date.day, time.hour, time.minute));
+                  }
+                }
+              }
+
+              Future<void> pickEnd() async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: end.isBefore(start) ? start : end,
+                  firstDate: start,
+                  lastDate: DateTime(2100),
+                );
+                if (date == null) return;
+                if (isAllDay) {
+                  setDialogState(() => end = DateTime(date.year, date.month, date.day));
+                } else {
+                  final time = await showTimePicker(
+                    context: context,
+                    initialTime: TimeOfDay.fromDateTime(end),
+                  );
+                  if (time != null) {
+                    setDialogState(() =>
+                        end = DateTime(date.year, date.month, date.day, time.hour, time.minute));
+                  }
+                }
+              }
+
               return SingleChildScrollView(
                 child: Form(
                   key: _formKey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       TextFormField(
                         decoration: const InputDecoration(labelText: 'Name'),
-                        validator: (value) => value == null || value.isEmpty ? 'Bitte Name eingeben' : null,
+                        validator: (value) =>
+                            value == null || value.isEmpty ? 'Bitte Name eingeben' : null,
                         onSaved: (value) => name = value,
                       ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Text('Startdatum:'),
-                          const SizedBox(width: 10),
-                          Text(startDate != null ? DateFormat('dd.MM.yyyy').format(startDate!) : 'kein Datum'),
-                          IconButton(
-                            icon: const Icon(Icons.calendar_today),
-                            onPressed: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: startDate ?? DateTime.now(),
-                                firstDate: DateTime(2000),
-                                lastDate: DateTime(2100),
-                              );
-                              if (picked != null) setState(() => startDate = picked);
-                            },
-                          ),
-                        ],
+                      SwitchListTile(
+                        title: const Text('Ganztägig'),
+                        contentPadding: EdgeInsets.zero,
+                        value: isAllDay,
+                        onChanged: (v) => setDialogState(() => isAllDay = v),
                       ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Text('Enddatum (optional):'),
-                          const SizedBox(width: 10),
-                          Text(endDate != null ? DateFormat('dd.MM.yyyy').format(endDate!) : 'kein Datum'),
-                          IconButton(
-                            icon: const Icon(Icons.calendar_today),
-                            onPressed: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: endDate ?? (startDate ?? DateTime.now()),
-                                firstDate: startDate ?? DateTime.now(),
-                                lastDate: DateTime(2100),
-                              );
-                              if (picked != null) setState(() => endDate = picked);
-                            },
-                          ),
-                        ],
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Von:'),
+                        subtitle: Text(format(start)),
+                        onTap: pickStart,
                       ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Text('Jeden Tag markieren?'),
-                          Checkbox(
-                            value: isFilled,
-                            onChanged: (v) => setState(() => isFilled = v ?? false),
-                          )
-                        ],
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Bis:'),
+                        subtitle: Text(format(end)),
+                        onTap: pickEnd,
+                      ),
+                      SwitchListTile(
+                        title: const Text('Nur Start und Ende'),
+                        contentPadding: EdgeInsets.zero,
+                        value: onlyStartEnd,
+                        onChanged: (v) => setDialogState(() => onlyStartEnd = v),
                       ),
                     ],
                   ),
@@ -162,33 +186,27 @@ class _EventListScreenState extends State<EventListScreen> {
             },
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Abbrechen')),
             ElevatedButton(
               onPressed: () {
                 if (_formKey.currentState?.validate() ?? false) {
                   _formKey.currentState!.save();
-                  if (startDate == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bitte Startdatum wählen')));
+                  if (end.isBefore(start)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Ende darf nicht vor Start liegen')));
                     return;
                   }
-                  if (endDate != null && endDate!.isBefore(startDate!)) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enddatum darf nicht vor Startdatum liegen')));
-                    return;
-                  }
-
                   final event = Event(
                     name: name!,
-                    startDate: startDate!,
-                    endDate: endDate,
-                    isFilled: isFilled,
+                    startDate: start,
+                    endDate: end,
+                    isFilled: !onlyStartEnd,
                   );
-
                   eventBox.add(event);
                   Navigator.pop(context);
-                  setState(() {}); // neu laden
+                  setState(() {});
                 }
               },
-              child: const Text('Hinzufügen'),
+              child: const Text('Fertig'),
             )
           ],
         );

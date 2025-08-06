@@ -198,35 +198,12 @@ class _EventListScreenState extends State<EventListScreen> {
                         const SnackBar(content: Text('Ende darf nicht vor Start liegen')));
                     return;
                   }
-                  if (onlyStartEnd) {
-                    final startDay = DateTime(start.year, start.month, start.day);
-                    final endDay = DateTime(end.year, end.month, end.day);
-
-                    // create separate entries for the start and end days
-                    eventBox.addAll([
-                      Event(
-                        name: '${name!} Start',
-                        startDate: startDay,
-                        endDate: startDay,
-                      ),
-                      Event(
-                        name: '${name!} Ende',
-                        startDate: endDay,
-                        endDate: endDay,
-                      ),
-                    ]);
-                  } else {
-                    var day = DateTime(start.year, start.month, start.day);
-                    final endDay = DateTime(end.year, end.month, end.day);
-                    while (!day.isAfter(endDay)) {
-                      eventBox.add(Event(
-                        name: name!,
-                        startDate: day,
-                        endDate: day,
-                      ));
-                      day = day.add(const Duration(days: 1));
-                    }
-                  }
+                  eventBox.add(Event(
+                    name: name!,
+                    startDate: start,
+                    endDate: end,
+                    isFilled: !onlyStartEnd,
+                  ));
                   Navigator.pop(context);
                   setState(() {});
                 }
@@ -254,15 +231,19 @@ class _EventListScreenState extends State<EventListScreen> {
           final event = events[index];
 
           final startFormatted = DateFormat('dd.MM.yyyy').format(event.startDate);
-          final endFormatted = event.endDate != null ? DateFormat('dd.MM.yyyy').format(event.endDate!) : null;
+          final endFormatted = event.endDate != null
+              ? DateFormat('dd.MM.yyyy').format(event.endDate!)
+              : null;
+          final subtitle = (endFormatted == null ||
+                  event.startDate.isAtSameMomentAs(event.endDate!))
+              ? startFormatted
+              : event.isFilled
+                  ? '$startFormatted bis $endFormatted (jeden Tag markiert)'
+                  : '$startFormatted bis $endFormatted (nur Start/Ende markiert)';
 
           return ListTile(
             title: Text(event.name),
-            subtitle: Text(endFormatted == null
-                ? startFormatted
-                : event.isFilled
-                ? '$startFormatted bis $endFormatted (jeden Tag markiert)'
-                : '$startFormatted bis $endFormatted (nur Start/Ende markiert)'),
+            subtitle: Text(subtitle),
             trailing: IconButton(
               icon: const Icon(Icons.delete),
               onPressed: () {

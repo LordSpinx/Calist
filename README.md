@@ -1,4 +1,4 @@
-# calist
+# Calist
 
 A new Flutter project.
 

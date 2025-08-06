@@ -201,16 +201,20 @@ class _EventListScreenState extends State<EventListScreen> {
                   if (onlyStartEnd) {
                     final startDay = DateTime(start.year, start.month, start.day);
                     final endDay = DateTime(end.year, end.month, end.day);
-                    eventBox.add(Event(
-                      name: '${name!} Start',
-                      startDate: startDay,
-                      endDate: startDay,
-                    ));
-                    eventBox.add(Event(
-                      name: '${name!} Ende',
-                      startDate: endDay,
-                      endDate: endDay,
-                    ));
+
+                    // create separate entries for the start and end days
+                    eventBox.addAll([
+                      Event(
+                        name: '${name!} Start',
+                        startDate: startDay,
+                        endDate: startDay,
+                      ),
+                      Event(
+                        name: '${name!} Ende',
+                        startDate: endDay,
+                        endDate: endDay,
+                      ),
+                    ]);
                   } else {
                     var day = DateTime(start.year, start.month, start.day);
                     final endDay = DateTime(end.year, end.month, end.day);

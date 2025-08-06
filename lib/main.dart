@@ -198,13 +198,31 @@ class _EventListScreenState extends State<EventListScreen> {
                         const SnackBar(content: Text('Ende darf nicht vor Start liegen')));
                     return;
                   }
-                  final event = Event(
-                    name: name!,
-                    startDate: start,
-                    endDate: end,
-                    isFilled: !onlyStartEnd,
-                  );
-                  eventBox.add(event);
+                  if (onlyStartEnd) {
+                    final startDay = DateTime(start.year, start.month, start.day);
+                    final endDay = DateTime(end.year, end.month, end.day);
+                    eventBox.add(Event(
+                      name: '${name!} Start',
+                      startDate: startDay,
+                      endDate: startDay,
+                    ));
+                    eventBox.add(Event(
+                      name: '${name!} Ende',
+                      startDate: endDay,
+                      endDate: endDay,
+                    ));
+                  } else {
+                    var day = DateTime(start.year, start.month, start.day);
+                    final endDay = DateTime(end.year, end.month, end.day);
+                    while (!day.isAfter(endDay)) {
+                      eventBox.add(Event(
+                        name: name!,
+                        startDate: day,
+                        endDate: day,
+                      ));
+                      day = day.add(const Duration(days: 1));
+                    }
+                  }
                   Navigator.pop(context);
                   setState(() {});
                 }

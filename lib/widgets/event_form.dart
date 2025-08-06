@@ -11,11 +11,10 @@ class EventForm extends StatefulWidget {
 
 class _EventFormState extends State<EventForm> {
   final _formKey = GlobalKey<FormState>();
-  String title = '';
-  String? time;
+  String name = '';
   DateTime startDate = DateTime.now();
   DateTime endDate = DateTime.now();
-  bool isFullyBooked = true;
+  bool isFilled = true;
 
   Future<void> pickDateRange() async {
     final picked = await showDateRangePicker(
@@ -43,13 +42,10 @@ class _EventFormState extends State<EventForm> {
           child: Column(
             children: [
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Titel'),
-                validator: (value) => value == null || value.isEmpty ? 'Titel erforderlich' : null,
-                onSaved: (value) => title = value!,
-              ),
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Uhrzeit (optional)'),
-                onSaved: (value) => time = value,
+                decoration: const InputDecoration(labelText: 'Name'),
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Name erforderlich' : null,
+                onSaved: (value) => name = value!,
               ),
               const SizedBox(height: 12),
               Row(
@@ -66,10 +62,10 @@ class _EventFormState extends State<EventForm> {
                 ],
               ),
               CheckboxListTile(
-                title: const Text('Jeden Tag belegt?'),
-                value: isFullyBooked,
+                title: const Text('Jeden Tag markieren?'),
+                value: isFilled,
                 onChanged: (val) {
-                  setState(() => isFullyBooked = val ?? true);
+                  setState(() => isFilled = val ?? true);
                 },
               ),
             ],
@@ -84,11 +80,10 @@ class _EventFormState extends State<EventForm> {
               _formKey.currentState!.save();
               final box = Hive.box<Event>('events');
               box.add(Event(
-                title: title,
+                name: name,
                 startDate: startDate,
                 endDate: endDate,
-                time: time,
-                isFullyBooked: isFullyBooked,
+                isFilled: isFilled,
               ));
               Navigator.pop(context);
             }

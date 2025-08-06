@@ -18,10 +18,32 @@ class HomeScreen extends StatelessWidget {
         valueListenable: box.listenable(),
         builder: (context, Box<Event> box, _) {
           final now = DateTime.now();
-          final events = box.values
+
+          // Collect all events that are still in the future
+          final upcoming = box.values
               .where((e) => e.endDate.isAfter(now))
-              .toList()
-            ..sort((a, b) => a.startDate.compareTo(b.startDate));
+              .toList();
+
+          // Expand multi-day events so that each day appears as its own entry
+          final events = <Event>[];
+          for (final event in upcoming) {
+            var day = DateTime(event.startDate.year, event.startDate.month, event.startDate.day);
+            final endDay =
+                DateTime(event.endDate.year, event.endDate.month, event.endDate.day);
+
+            while (!day.isAfter(endDay)) {
+              events.add(Event(
+                title: event.title,
+                startDate: day,
+                endDate: day,
+                time: event.time,
+                isFullyBooked: event.isFullyBooked,
+              ));
+              day = day.add(const Duration(days: 1));
+            }
+          }
+
+          events.sort((a, b) => a.startDate.compareTo(b.startDate));
 
           return ListView.builder(
             itemCount: events.length,

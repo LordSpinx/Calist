@@ -20,11 +20,12 @@ class _EventFormState extends State<EventForm> {
   bool _isAllDay = false;
   bool _splitByDay = true;
   int _selectedColorIndex = 0;
+  String? _errorText;
 
   @override
   void initState() {
     super.initState();
-    final title = widget.existingEvent?.title.replaceAll(RegExp(r' (Start|Ende)\$'), '') ?? '';
+    final title = widget.existingEvent?.title.replaceAll(RegExp(r' (Start|Ende)$'), '') ?? '';
     _titleController = TextEditingController(text: title);
 
     final date = widget.existingEvent?.date;
@@ -34,18 +35,37 @@ class _EventFormState extends State<EventForm> {
     }
 
     _selectedColorIndex = widget.existingEvent?.colorIndex ?? 0;
+    _isAllDay = widget.existingEvent?.isAllDay ?? false;
   }
 
   void _saveEvent() {
-    if (_titleController.text.isEmpty || _startDateTime == null) return;
+    if (_titleController.text.isEmpty || _startDateTime == null) {
+      setState(() => _errorText = 'Bitte Titel und Startzeit angeben');
+      return;
+    }
 
-    _endDateTime ??= _startDateTime;
-    if (_startDateTime!.isAfter(_endDateTime!)) return;
+    if (_endDateTime != null && _startDateTime!.isAfter(_endDateTime!)) {
+      setState(() => _errorText = 'Startzeit darf nicht nach der Endzeit liegen');
+      return;
+    }
 
     final eventBox = Hive.box<Event>('events');
-    if (widget.eventIndex != null) {
-      eventBox.deleteAt(widget.eventIndex!);
+
+    if (widget.existingEvent != null) {
+      final oldTitle = widget.existingEvent!.title.replaceAll(RegExp(r' (Start|Ende)$'), '');
+      final oldEvents = eventBox.values.where((e) =>
+      e.title == oldTitle || e.title == "$oldTitle Start" || e.title == "$oldTitle Ende"
+      ).toList();
+
+      for (final e in oldEvents) {
+        final key = eventBox.keys.firstWhere((k) => eventBox.get(k) == e);
+        eventBox.delete(key);
+      }
     }
+
+    int addedCount = 0;
+
+    _endDateTime ??= _startDateTime;
 
     if (_splitByDay) {
       DateTime current = _startDateTime!;
@@ -54,7 +74,9 @@ class _EventFormState extends State<EventForm> {
           title: _titleController.text,
           date: _isAllDay ? DateTime(current.year, current.month, current.day) : current,
           colorIndex: _selectedColorIndex,
+          isAllDay: _isAllDay,
         ));
+        addedCount++;
         current = current.add(const Duration(days: 1));
       }
     } else {
@@ -64,7 +86,9 @@ class _EventFormState extends State<EventForm> {
             ? DateTime(_startDateTime!.year, _startDateTime!.month, _startDateTime!.day)
             : _startDateTime!,
         colorIndex: _selectedColorIndex,
+        isAllDay: _isAllDay,
       ));
+      addedCount++;
 
       if (!_startDateTime!.isAtSameMomentAs(_endDateTime!)) {
         eventBox.add(Event(
@@ -73,7 +97,9 @@ class _EventFormState extends State<EventForm> {
               ? DateTime(_endDateTime!.year, _endDateTime!.month, _endDateTime!.day)
               : _endDateTime!,
           colorIndex: _selectedColorIndex,
+          isAllDay: _isAllDay,
         ));
+        addedCount++;
       }
     }
 
@@ -151,9 +177,18 @@ class _EventFormState extends State<EventForm> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (_errorText != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Text(
+                  _errorText!,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(labelText: 'Titel'),
+              onChanged: (_) => setState(() => _errorText = null),
             ),
             const SizedBox(height: 10),
             Wrap(
@@ -199,8 +234,14 @@ class _EventFormState extends State<EventForm> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Abbrechen')),
-        ElevatedButton(onPressed: _saveEvent, child: const Text('Speichern')),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Abbrechen'),
+        ),
+        ElevatedButton(
+          onPressed: _saveEvent,
+          child: const Text('Speichern'),
+        ),
       ],
     );
   }

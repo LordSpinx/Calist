@@ -13,5 +13,14 @@ class Event {
   @HiveField(2)
   final int colorIndex;
 
-  Event({required this.title, required this.date, required this.colorIndex});
+  @HiveField(3)
+  final bool isAllDay;
+
+  Event({
+    required this.title,
+    required this.date,
+    required this.colorIndex,
+    required this.isAllDay,
+  });
+
 }

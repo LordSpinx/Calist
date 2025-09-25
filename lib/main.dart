@@ -9,16 +9,18 @@ void main() async {
 
   await Hive.initFlutter();
   Hive.registerAdapter(EventAdapter());
+
   await Hive.openBox<Event>('events');
 
   runApp(const MyApp());
 }
 
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'Kalender App',
+    title: 'Calist',
     theme: ThemeData(
       primarySwatch: Colors.green,
       brightness: Brightness.light,

@@ -1,4 +1,4 @@
-name: calist
+name: Calist
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -44,6 +44,14 @@ dev_dependencies:
     sdk: flutter
   build_runner: ^2.4.6
   hive_generator: ^2.0.1
+  flutter_launcher_icons: ^0.13.1
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "calist.png"
+  adaptive_icon_background: "calist_bg.png" # oder path zu Bild
+  adaptive_icon_foreground: "calist_fg.png"
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

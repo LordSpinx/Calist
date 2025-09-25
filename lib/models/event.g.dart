@@ -20,19 +20,22 @@ class EventAdapter extends TypeAdapter<Event> {
       title: fields[0] as String,
       date: fields[1] as DateTime,
       colorIndex: fields[2] as int,
+      isAllDay: fields[3] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, Event obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.title)
       ..writeByte(1)
       ..write(obj.date)
       ..writeByte(2)
-      ..write(obj.colorIndex);
+      ..write(obj.colorIndex)
+      ..writeByte(3)
+      ..write(obj.isAllDay);
   }
 
   @override
